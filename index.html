@@ -12,8 +12,11 @@
 
 <div style="height:4px;background:linear-gradient(90deg,#0B2A3C 0%,#123E57 40%,#C8A96A 100%);"></div>
 
+<!-- Full-page parallax background -->
+<div id="page-bg" aria-hidden="true"></div>
+<div id="page-overlay" aria-hidden="true"></div>
+
 <header class="hero">
-  <div class="hero-bg" aria-hidden="true"></div>
   <div class="hero-inner">
 
     <p style="font-size:11px;font-weight:700;letter-spacing:1.5px;text-transform:uppercase;color:rgba(200,169,106,0.80);margin-bottom:14px;">
@@ -321,7 +324,12 @@
     <div class="card">
       <button class="back-btn" type="button">← Back</button>
 
-      <div class="profile-hero-card">
+      <label for="profile-select">Select a District</label>
+      <select id="profile-select">
+        <option value="">Choose a district</option>
+      </select>
+
+      <div class="profile-hero-card" id="profile-card" style="display:none;margin-top:20px;">
         <div class="ph-eyeline">District Profile</div>
         <div class="ph-name" id="profile-name">District Name</div>
         <div class="ph-meta" id="profile-meta">Florida school district</div>
@@ -329,6 +337,7 @@
         <div class="ph-note">Estimated total compensation</div>
       </div>
 
+      <div id="profile-details" style="display:none;">
       <div class="profile-section">Salary Details</div>
       <div class="profile-line">
         <span class="lbl">Base salary</span>
@@ -354,6 +363,7 @@
       <div class="profile-section">Notes</div>
       <div class="notes-box" id="profile-notes">
         Additional district notes and verification details will appear here.
+      </div>
       </div>
     </div>
   </section>
