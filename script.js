@@ -323,10 +323,25 @@ document.addEventListener("DOMContentLoaded", function () {
   renderRankings();
 
   // ── DISTRICT PROFILE ──────────────────────────────────
+  const profileSelect = document.getElementById("profile-select");
+  const profileCard = document.getElementById("profile-card");
+  const profileDetails = document.getElementById("profile-details");
+
+  // Populate profile dropdown
+  sortedNames.forEach(d => {
+    const opt = document.createElement("option");
+    opt.value = d.name;
+    opt.textContent = d.name + " County";
+    profileSelect.appendChild(opt);
+  });
+
   function openProfile(name) {
     const d = rankedDistricts.find(x => x.name === name) ||
               DISTRICTS.find(x => x.name === name);
     if (!d) return;
+
+    // Set dropdown to match
+    profileSelect.value = name;
 
     document.getElementById("profile-name").textContent = name + " County";
     document.getElementById("profile-meta").textContent = d.schedule + " · " + d.days + (d.ashaPaid ? " · ASHA dues paid" : "");
@@ -338,8 +353,23 @@ document.addEventListener("DOMContentLoaded", function () {
     document.getElementById("profile-bonus").textContent = fmt(d.bonus);
     document.getElementById("profile-notes").textContent = d.notes || "No additional notes for this district.";
 
+    // Show the profile content
+    profileCard.style.display = "";
+    profileDetails.style.display = "";
+
     switchTab("profile");
   }
+
+  // Profile dropdown change handler
+  profileSelect.addEventListener("change", function () {
+    const name = profileSelect.value;
+    if (name) {
+      openProfile(name);
+    } else {
+      profileCard.style.display = "none";
+      profileDetails.style.display = "none";
+    }
+  });
 
   // Back button
   const backBtn = document.querySelector(".back-btn");
@@ -448,13 +478,74 @@ document.addEventListener("DOMContentLoaded", function () {
   }
 });
 
-// ── HERO PARALLAX (LIGHTWEIGHT) ──────────────────────────
-window.addEventListener("scroll", () => {
-  const bg = document.querySelector(".hero-bg");
-  if (!bg) return;
-  if (window.matchMedia("(prefers-reduced-motion: reduce)").matches) return;
-  bg.style.transform = `translateY(${window.scrollY * 0.2}px)`;
-});
+// ── FULL-PAGE PARALLAX + COLOR TRANSITIONS ───────────────
+(function() {
+  const bg = document.getElementById("page-bg");
+  const overlay = document.getElementById("page-overlay");
+  if (!bg || !overlay) return;
+  const prefersReduced = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+
+  // Color stops for the overlay as you scroll
+  // [scrollPercent, rgba string]
+  // Hero area: dark navy, semi-transparent to show image
+  // Wow section: slightly more transparent navy
+  // Content area: shifts to a blue-grey tint
+  function getOverlayColor(scrollY) {
+    const docHeight = document.documentElement.scrollHeight - window.innerHeight;
+    const pct = docHeight > 0 ? scrollY / docHeight : 0;
+
+    // Blend from dark navy → navy-teal → blue-grey as you scroll
+    if (pct < 0.15) {
+      // Hero: dark navy, let image show through
+      const t = pct / 0.15;
+      const opacity = 0.82 + (t * 0.06); // 0.82 → 0.88
+      return `rgba(11, 42, 60, ${opacity})`;
+    } else if (pct < 0.35) {
+      // Wow section: navy with slight teal shift
+      const t = (pct - 0.15) / 0.20;
+      const r = Math.round(11 + t * 8);   // 11 → 19
+      const g = Math.round(42 + t * 14);  // 42 → 56
+      const b = Math.round(60 + t * 12);  // 60 → 72
+      const opacity = 0.88 - (t * 0.04);  // 0.88 → 0.84
+      return `rgba(${r}, ${g}, ${b}, ${opacity})`;
+    } else if (pct < 0.7) {
+      // Content area: transition to blue-grey
+      const t = (pct - 0.35) / 0.35;
+      const r = Math.round(19 + t * 20);  // 19 → 39
+      const g = Math.round(56 + t * 24);  // 56 → 80
+      const b = Math.round(72 + t * 20);  // 72 → 92
+      const opacity = 0.84 - (t * 0.02);  // 0.84 → 0.82
+      return `rgba(${r}, ${g}, ${b}, ${opacity})`;
+    } else {
+      // Footer area: deeper navy again
+      const t = (pct - 0.7) / 0.30;
+      const r = Math.round(39 - t * 22);  // 39 → 17
+      const g = Math.round(80 - t * 30);  // 80 → 50
+      const b = Math.round(92 - t * 22);  // 92 → 70
+      const opacity = 0.82 + (t * 0.10);  // 0.82 → 0.92
+      return `rgba(${r}, ${g}, ${b}, ${opacity})`;
+    }
+  }
+
+  let ticking = false;
+  window.addEventListener("scroll", () => {
+    if (ticking) return;
+    ticking = true;
+    requestAnimationFrame(() => {
+      const scrollY = window.scrollY;
+
+      // Parallax the background image
+      if (!prefersReduced) {
+        bg.style.transform = `translateY(${scrollY * 0.15}px) scale(1.1)`;
+      }
+
+      // Transition overlay color
+      overlay.style.background = getOverlayColor(scrollY);
+
+      ticking = false;
+    });
+  });
+})();
 
 // ── WOW SECTION ANIMATION ────────────────────────────────
 const wowSection = document.querySelector(".wow-section");
