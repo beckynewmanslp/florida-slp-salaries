@@ -58,7 +58,7 @@ const DISTRICTS = [
   { name:"Washington", base:42228, masters:3105, doctorate:0, ccc:6392, bonus:0, total:51725, confidence:"estimated", schedule:"Instructional", days:"196 days", ashaPaid:false, notes:"" },
   { name:"Nassau", base:46720, masters:3000, doctorate:0, ccc:1500, bonus:0, total:51220, confidence:"estimated", schedule:"Instructional", days:"196 days", ashaPaid:false, notes:"" },
   { name:"Gilchrist", base:46024, masters:2417, doctorate:0, ccc:0, bonus:2704, total:51145, confidence:"estimated", schedule:"Instructional", days:"10 months", ashaPaid:false, notes:"Speech Therapist Supplement $2,704 (increases with years of experience)." },
-  { name:"St. Johns", base:47500, masters:2730, doctorate:0, ccc:0, bonus:450, total:50680, confidence:"estimated", schedule:"Instructional", days:"10 months", ashaPaid:false, notes:"$450 Critical Shortage Supplement." },
+  { name:"St. Johns", base:47500, masters:2730, doctorate:0, ccc:0, bonus:5900, total:56130, confidence:"verified", schedule:"Instructional", days:"10 months", ashaPaid:false, notes:"$1,400 Critical Shortage Supplement. $4,500 Millage Supplement. Updated 3/20/2026 via user correction." },
   { name:"Levy", base:46000, masters:3094, doctorate:0, ccc:0, bonus:1000, total:50094, confidence:"estimated", schedule:"Instructional", days:"196 days", ashaPaid:false, notes:"$1,000 ESE Supplement for caseloads larger than 15." },
   { name:"Holmes", base:41340, masters:2660, doctorate:0, ccc:6000, bonus:0, total:50000, confidence:"estimated", schedule:"Instructional", days:"196 days", ashaPaid:false, notes:"" },
   { name:"Martin", base:47500, masters:0, doctorate:0, ccc:1850, bonus:0, total:49350, confidence:"estimated", schedule:"Instructional", days:"196 days", ashaPaid:false, notes:"Master's required for position — no separate supplement. $1,800 Millage stipend after 1 year." },
@@ -378,24 +378,50 @@ document.addEventListener("DOMContentLoaded", function () {
   }
 
   // ── CORRECTIONS FORM ──────────────────────────────────
-  // ⚠️ IMPORTANT: Replace this URL with your deployed Google Apps Script URL
-  // See the SETUP_GUIDE.md file for step-by-step instructions
   const APPS_SCRIPT_URL = "https://script.google.com/macros/s/AKfycbwPcpIMkyZ7JSWIw32gXNUQ9yc5OWG91FyGBITsw0oiSqqrTwZe-3qaAGNz5W76TsgX/exec";
 
   const correctionForm = document.getElementById("correction-form");
   const successBox = document.getElementById("r-success");
   const errorBox = document.getElementById("r-error");
 
+  // Populate the corrections district dropdown
+  const corrDistrictSelect = document.getElementById("c-district-select");
+  if (corrDistrictSelect) {
+    sortedNames.forEach(d => {
+      const opt = document.createElement("option");
+      opt.value = d.name;
+      opt.textContent = d.name + " County";
+      corrDistrictSelect.appendChild(opt);
+    });
+  }
+
   correctionForm.addEventListener("submit", function (e) {
     e.preventDefault();
 
     const name = document.getElementById("c-name").value.trim();
     const email = document.getElementById("c-email").value.trim();
-    const district = document.getElementById("c-district").value.trim();
-    const message = document.getElementById("c-message").value.trim();
+    const district = corrDistrictSelect.value;
+    const source = document.getElementById("c-source").value.trim();
+    const notes = document.getElementById("c-notes").value.trim();
 
-    if (!district || !message) {
-      errorBox.textContent = "Please fill in the district and correction details.";
+    // Build corrections array from the 3 slots
+    const corrections = [];
+    for (let i = 1; i <= 3; i++) {
+      const cat = document.getElementById("c" + i + "-category").value;
+      const val = document.getElementById("c" + i + "-value").value.trim();
+      if (cat && val) {
+        corrections.push({ category: cat, value: val });
+      }
+    }
+
+    if (!district) {
+      errorBox.textContent = "Please select a district.";
+      errorBox.style.display = "block";
+      return;
+    }
+
+    if (corrections.length === 0) {
+      errorBox.textContent = "Please fill in at least one correction (category + value).";
       errorBox.style.display = "block";
       return;
     }
@@ -409,8 +435,17 @@ document.addEventListener("DOMContentLoaded", function () {
     submitBtn.disabled = true;
     submitBtn.textContent = "Sending…";
 
+    const payload = {
+      name: name || "Anonymous",
+      email: email || "Not provided",
+      district: district,
+      corrections: corrections,
+      source: source || "Not provided",
+      notes: notes || "",
+      timestamp: new Date().toISOString()
+    };
+
     if (APPS_SCRIPT_URL === "YOUR_APPS_SCRIPT_URL_HERE") {
-      // No Apps Script URL configured — show success anyway for testing
       setTimeout(() => {
         successBox.style.display = "block";
         submitBtn.disabled = false;
@@ -425,13 +460,7 @@ document.addEventListener("DOMContentLoaded", function () {
       method: "POST",
       mode: "no-cors",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        name: name || "Anonymous",
-        email: email || "Not provided",
-        district: district,
-        message: message,
-        timestamp: new Date().toISOString()
-      })
+      body: JSON.stringify(payload)
     })
     .then(() => {
       successBox.style.display = "block";
