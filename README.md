@@ -42,8 +42,8 @@ Data is sourced from publicly available salary schedules, verified where possibl
 
 ## Maintained By
 
-**Becky Newman, M.S., CCC-SLP** — beckynewmanslp@gmail.com  
-**Michele Chacon, M.S., CCC-SLP** — michellechacon.slp@gmail.com
+**Becky Newman, M.A., CCC-SLP** — beckynewmanslp@gmail.com  
+**Michele Chacon, M.A., CCC-SLP** — michellechacon.slp@gmail.com
 
 Built to support advocacy, retention, and informed career decisions for Florida's school-based SLP workforce.
 
