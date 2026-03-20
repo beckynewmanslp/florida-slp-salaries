@@ -28,12 +28,12 @@
   --hero-bg: #0B2A3C;
 }
 *,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
-html{scroll-behavior:smooth}
-body{font-family:'Inter',sans-serif;font-size:15px;line-height:1.6;background:#0B2A3C;color:var(--body-text);min-height:100vh;-webkit-font-smoothing:antialiased;overflow-x:hidden}
-#page-bg{position:fixed;inset:0;background-image:url('hero-capitol.jpg');background-size:cover;background-position:center 35%;background-repeat:no-repeat;filter:brightness(.80) saturate(.75) blur(1.5px);z-index:-2;will-change:transform;transform:translateY(0) scale(1.1)}
-#page-overlay{position:fixed;inset:0;z-index:-1;pointer-events:none;background:rgba(11,42,60,.92);transition:background .4s ease}
+html{scroll-behavior:smooth;background:#0B2A3C}
+body{font-family:'Inter',sans-serif;font-size:15px;line-height:1.6;background:transparent;color:var(--body-text);min-height:100vh;-webkit-font-smoothing:antialiased;overflow-x:hidden;position:relative}
+#page-bg{position:fixed;inset:0;background-image:url('hero-capitol.jpg');background-size:cover;background-position:center 35%;background-repeat:no-repeat;filter:brightness(.80) saturate(.75) blur(1.5px);z-index:0;will-change:transform;transform:translateY(0) scale(1.1)}
+#page-overlay{position:fixed;inset:0;z-index:1;pointer-events:none;background:rgba(11,42,60,.92);transition:background .4s ease}
 @media(prefers-reduced-motion:reduce){#page-bg{transform:none!important}}
-.hero{position:relative;background:transparent;color:#FFF;padding:48px 24px 0;overflow:hidden;isolation:isolate}
+.hero{position:relative;background:transparent;color:#FFF;padding:48px 24px 0;overflow:hidden;z-index:2}
 .hero::after{content:'';position:absolute;inset:0;background:linear-gradient(to bottom,rgba(11,42,60,.15) 0%,rgba(11,42,60,.05) 80%,transparent 100%);z-index:-1;pointer-events:none}
 .hero-inner{max-width:700px;margin:0 auto;position:relative;z-index:1}
 .district-badge{display:inline-flex;align-items:center;gap:6px;background:transparent;border:1px solid #C8A96A;color:#C8A96A;font-size:11px;font-weight:600;letter-spacing:.6px;padding:5px 13px;border-radius:999px;margin-bottom:22px}
@@ -56,10 +56,10 @@ body{font-family:'Inter',sans-serif;font-size:15px;line-height:1.6;background:#0
 .tab{padding:15px 22px;font-family:'Inter',sans-serif;font-size:13px;font-weight:500;color:rgba(201,209,217,.50);border:none;background:none;cursor:pointer;white-space:nowrap;border-bottom:3px solid transparent;transition:color .2s,border-color .2s;letter-spacing:.1px}
 .tab:hover{color:rgba(255,255,255,.80)}
 .tab.active{color:#FFF;border-bottom:3px solid #2EC4B6;font-weight:600;background:none}
-.page{max-width:700px;margin:0 auto;padding:32px 20px 64px;background:transparent}
+.page{max-width:700px;margin:0 auto;padding:32px 20px 64px;background:transparent;position:relative;z-index:2}
 .panel{display:none}
 .panel.active{display:block}
-.wow-section{background:rgba(11,42,60,.75);padding:64px 24px 72px;border-bottom:1px solid rgba(255,255,255,.06);backdrop-filter:blur(2px)}
+.wow-section{background:rgba(11,42,60,.75);padding:64px 24px 72px;border-bottom:1px solid rgba(255,255,255,.06);backdrop-filter:blur(2px);position:relative;z-index:2}
 .wow-inner{max-width:680px;margin:0 auto}
 .wow-label{font-size:11px;font-weight:700;letter-spacing:1.4px;text-transform:uppercase;color:#C8A96A;margin-bottom:14px}
 .wow-headline{font-size:clamp(26px,5vw,36px);font-weight:800;color:#FFF;letter-spacing:-.6px;line-height:1.12;margin-bottom:14px}
