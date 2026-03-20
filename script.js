@@ -350,7 +350,7 @@ document.addEventListener("DOMContentLoaded", function () {
   // ── CORRECTIONS FORM ──────────────────────────────────
   // ⚠️ IMPORTANT: Replace this URL with your deployed Google Apps Script URL
   // See the SETUP_GUIDE.md file for step-by-step instructions
-  const APPS_SCRIPT_URL = "YOUR_APPS_SCRIPT_URL_HERE";
+  const APPS_SCRIPT_URL = "https://script.google.com/macros/s/AKfycbwPcpIMkyZ7JSWIw32gXNUQ9yc5OWG91FyGBITsw0oiSqqrTwZe-3qaAGNz5W76TsgX/exec";
 
   const correctionForm = document.getElementById("correction-form");
   const successBox = document.getElementById("r-success");
