@@ -328,12 +328,14 @@ document.addEventListener("DOMContentLoaded", function () {
   const profileDetails = document.getElementById("profile-details");
 
   // Populate profile dropdown
-  sortedNames.forEach(d => {
-    const opt = document.createElement("option");
-    opt.value = d.name;
-    opt.textContent = d.name + " County";
-    profileSelect.appendChild(opt);
-  });
+  if (profileSelect) {
+    sortedNames.forEach(d => {
+      const opt = document.createElement("option");
+      opt.value = d.name;
+      opt.textContent = d.name + " County";
+      profileSelect.appendChild(opt);
+    });
+  }
 
   function openProfile(name) {
     const d = rankedDistricts.find(x => x.name === name) ||
@@ -341,35 +343,38 @@ document.addEventListener("DOMContentLoaded", function () {
     if (!d) return;
 
     // Set dropdown to match
-    profileSelect.value = name;
+    if (profileSelect) profileSelect.value = name;
 
-    document.getElementById("profile-name").textContent = name + " County";
-    document.getElementById("profile-meta").textContent = d.schedule + " · " + d.days + (d.ashaPaid ? " · ASHA dues paid" : "");
-    document.getElementById("profile-salary").textContent = fmt(d.total);
-    document.getElementById("profile-base").textContent = fmt(d.base);
-    document.getElementById("profile-masters").textContent = fmt(d.masters);
-    document.getElementById("profile-doctorate").textContent = fmt(d.doctorate);
-    document.getElementById("profile-asha").textContent = fmt(d.ccc);
-    document.getElementById("profile-bonus").textContent = fmt(d.bonus);
-    document.getElementById("profile-notes").textContent = d.notes || "No additional notes for this district.";
+    var el;
+    el = document.getElementById("profile-name"); if (el) el.textContent = name + " County";
+    el = document.getElementById("profile-meta"); if (el) el.textContent = d.schedule + " · " + d.days + (d.ashaPaid ? " · ASHA dues paid" : "");
+    el = document.getElementById("profile-salary"); if (el) el.textContent = fmt(d.total);
+    el = document.getElementById("profile-base"); if (el) el.textContent = fmt(d.base);
+    el = document.getElementById("profile-masters"); if (el) el.textContent = fmt(d.masters);
+    el = document.getElementById("profile-doctorate"); if (el) el.textContent = fmt(d.doctorate);
+    el = document.getElementById("profile-asha"); if (el) el.textContent = fmt(d.ccc);
+    el = document.getElementById("profile-bonus"); if (el) el.textContent = fmt(d.bonus);
+    el = document.getElementById("profile-notes"); if (el) el.textContent = d.notes || "No additional notes for this district.";
 
     // Show the profile content
-    profileCard.style.display = "";
-    profileDetails.style.display = "";
+    if (profileCard) profileCard.style.display = "";
+    if (profileDetails) profileDetails.style.display = "";
 
     switchTab("profile");
   }
 
   // Profile dropdown change handler
-  profileSelect.addEventListener("change", function () {
-    const name = profileSelect.value;
-    if (name) {
-      openProfile(name);
-    } else {
-      profileCard.style.display = "none";
-      profileDetails.style.display = "none";
-    }
-  });
+  if (profileSelect) {
+    profileSelect.addEventListener("change", function () {
+      const name = profileSelect.value;
+      if (name) {
+        openProfile(name);
+      } else {
+        if (profileCard) profileCard.style.display = "none";
+        if (profileDetails) profileDetails.style.display = "none";
+      }
+    });
+  }
 
   // Back button
   const backBtn = document.querySelector(".back-btn");
