@@ -1,519 +1,562 @@
-// ═══════════════════════════════════════════════════════════
-// Florida SLP Salary Comparison Tool — script.js
-// Pulls LIVE data from Google Sheet, falls back to cached data
-// ═══════════════════════════════════════════════════════════
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Florida School-Based SLP Salary Comparison</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="styles.css">
+</head>
+<body>
 
-// ── CONFIG ────────────────────────────────────────────────
-const APPS_SCRIPT_URL = "https://script.google.com/macros/s/AKfycbwPcpIMkyZ7JSWIw32gXNUQ9yc5OWG91FyGBITsw0oiSqqrTwZe-3qaAGNz5W76TsgX/exec";
-const DATA_URL = APPS_SCRIPT_URL + "?action=getData";
+<div style="height:4px;background:linear-gradient(90deg,#0B2A3C 0%,#123E57 40%,#C8A96A 100%);position:relative;z-index:2;"></div>
 
-// ── STATE ─────────────────────────────────────────────────
-let DISTRICTS = [];
-let rankedDistricts = [];
-let contractDistricts = [];
-let dataSource = "loading";
+<!-- Full-page parallax background -->
+<div id="page-bg" aria-hidden="true"></div>
+<div id="page-overlay" aria-hidden="true"></div>
 
-// ── FALLBACK DATA ─────────────────────────────────────────
-const FALLBACK = [
-{name:"Osceola",base:68250,masters:4394,doctorate:0,ccc:0,bonus:1500,total:74144,confidence:"verified",schedule:"Instructional",days:"10 months",ashaPaid:"Yes",notes:"Specialist supplement ($4,394) requires CCCs. $1,500 SLP Supplement. ASHA dues paid."},
-{name:"Franklin",base:71003,masters:0,doctorate:0,ccc:0,bonus:0,total:71003,confidence:"estimated",schedule:"District",days:"212 days",ashaPaid:"No",notes:"Master's required — no separate supplement."},
-{name:"Lee",base:57510,masters:2531,doctorate:0,ccc:8100,bonus:0,total:68141,confidence:"verified",schedule:"Special Instructional",days:"196 days",ashaPaid:"No",notes:"Updated 3/7/24."},
-{name:"Walton",base:50000,masters:3000,doctorate:0,ccc:13265,bonus:100,total:66365,confidence:"estimated",schedule:"Instructional",days:"196 days",ashaPaid:"No",notes:"$100 Critical Shortage. CCC $13,265."},
-{name:"Collier",base:54000,masters:3500,doctorate:0,ccc:2500,bonus:3000,total:63000,confidence:"verified",schedule:"Instructional",days:"196 days",ashaPaid:"No",notes:"$3,000 SLP Supplement. Updated 2/24/24."},
-{name:"Sarasota",base:55000,masters:5000,doctorate:0,ccc:5000,bonus:1500,total:62500,confidence:"verified",schedule:"Instructional",days:"196 days",ashaPaid:"No",notes:"$1,500 ESE Stipend. Updated 3/23/24."},
-{name:"Calhoun",base:62392,masters:0,doctorate:0,ccc:0,bonus:0,total:62392,confidence:"estimated",schedule:"SLP",days:"180 days",ashaPaid:"No",notes:"Base reflects CCC."},
-{name:"Liberty",base:62392,masters:0,doctorate:0,ccc:0,bonus:0,total:62392,confidence:"estimated",schedule:"Therapists",days:"180 days",ashaPaid:"No",notes:"Base reflects CCC."},
-{name:"Manatee",base:49702,masters:2156,doctorate:6396,ccc:0,bonus:10537,total:62395,confidence:"verified",schedule:"Instructional",days:"196 days",ashaPaid:"No",notes:"Referendum $9,537. SLP supplement $1,000. Updated 3/20/2026."},
-{name:"Orange",base:49368,masters:3473,doctorate:0,ccc:8000,bonus:1500,total:62341,confidence:"verified",schedule:"Instructional",days:"197 days",ashaPaid:"No",notes:"$1,500 ESE Supplement. Updated 3/6/24."},
-{name:"Bay",base:62228,masters:0,doctorate:0,ccc:0,bonus:0,total:62228,confidence:"estimated",schedule:"Licensed Personnel",days:"10 months",ashaPaid:"No",notes:""},
-{name:"Dixie",base:44720,masters:2000,doctorate:0,ccc:0,bonus:15000,total:61720,confidence:"estimated",schedule:"Instructional",days:"196 days",ashaPaid:"No",notes:"$15,000 Elem SLP Supplement — verify."},
-{name:"Broward",base:48925,masters:3650,doctorate:0,ccc:5500,bonus:3000,total:61075,confidence:"estimated",schedule:"Instructional",days:"196 days",ashaPaid:"No",notes:"$2,500 Critical Shortage + $500 New Hire."},
-{name:"Miami-Dade",base:52470,masters:5665,doctorate:0,ccc:1030,bonus:1200,total:60365,confidence:"estimated",schedule:"Instructional",days:"196 days",ashaPaid:"No",notes:"Specialist: $5,665. $1,200 Critical Shortage."},
-{name:"Brevard",base:48725,masters:2730,doctorate:0,ccc:6200,bonus:2565,total:60220,confidence:"verified",schedule:"Instructional",days:"196 days",ashaPaid:"No",notes:"$730 Millage, $835 ESE, $1,000 Critical Shortage. Updated 3/8/24."},
-{name:"Escambia",base:57215,masters:2750,doctorate:0,ccc:0,bonus:0,total:59965,confidence:"estimated",schedule:"Professional",days:"10 months",ashaPaid:"No",notes:""},
-{name:"Okaloosa",base:49017,masters:2382,doctorate:0,ccc:0,bonus:8161,total:59560,confidence:"estimated",schedule:"Instructional",days:"10 months",ashaPaid:"No",notes:"$8,161 FLDOH Licensure."},
-{name:"Pinellas",base:45672,masters:2251,doctorate:0,ccc:5280,bonus:11081,total:64284,confidence:"verified",schedule:"Instructional",days:"198 days",ashaPaid:"No",notes:"Referendum supplement increased to $11,081 for 2025-26 (was $6,328). Base $45,672 + referendum $11,081 + Master's $2,251 + CCC $5,280. Updated 3/20/2026."},
-{name:"Hernando",base:47500,masters:2500,doctorate:0,ccc:0,bonus:9170,total:59170,confidence:"estimated",schedule:"Instructional",days:"10 months",ashaPaid:"No",notes:"$9,170 Critical Shortage."},
-{name:"Citrus",base:47500,masters:2000,doctorate:0,ccc:9400,bonus:0,total:58900,confidence:"estimated",schedule:"Instructional",days:"196 days",ashaPaid:"Yes",notes:"ASHA dues paid."},
-{name:"Monroe",base:51800,masters:1800,doctorate:0,ccc:2300,bonus:3000,total:58900,confidence:"estimated",schedule:"Instructional",days:"196 days",ashaPaid:"No",notes:"$3,000 SLP Supplement."},
-{name:"Highlands",base:48280,masters:2500,doctorate:0,ccc:7242,bonus:600,total:58622,confidence:"estimated",schedule:"Instructional",days:"196 days",ashaPaid:"No",notes:"CCC 1.15x base. $600 Critical Shortage."},
-{name:"Palm Beach",base:61680,masters:3000,doctorate:0,ccc:2000,bonus:1000,total:67680,confidence:"estimated",schedule:"Instructional",days:"10 months",ashaPaid:"No",notes:"$1,000 ESE Supplement. Updated from 8/28/2025 source data."},
-{name:"Gulf",base:57851,masters:0,doctorate:0,ccc:0,bonus:0,total:57851,confidence:"estimated",schedule:"Specialists",days:"189 days",ashaPaid:"No",notes:"Master's in base."},
-{name:"St. Lucie",base:47500,masters:5020,doctorate:0,ccc:4000,bonus:1100,total:57620,confidence:"estimated",schedule:"Instructional",days:"10 months",ashaPaid:"No",notes:"Master's+30: $5,020. $1,000 Referendum."},
-{name:"Marion",base:55118,masters:2500,doctorate:0,ccc:0,bonus:0,total:57618,confidence:"estimated",schedule:"District Specialized",days:"196 days",ashaPaid:"No",notes:""},
-{name:"Seminole",base:48500,masters:4125,doctorate:0,ccc:4800,bonus:0,total:57425,confidence:"estimated",schedule:"Instructional",days:"196 days",ashaPaid:"No",notes:""},
-{name:"Wakulla",base:55200,masters:2200,doctorate:0,ccc:0,bonus:0,total:57400,confidence:"estimated",schedule:"Instructional SLP/OT/PT",days:"196 days",ashaPaid:"No",notes:""},
-{name:"Polk",base:52127,masters:5227,doctorate:0,ccc:0,bonus:0,total:57354,confidence:"estimated",schedule:"Student Services",days:"196 days",ashaPaid:"No",notes:"Master's requires CCCs. $1,200 Medicaid billing available."},
-{name:"Hendry",base:47800,masters:2500,doctorate:0,ccc:4000,bonus:3000,total:57300,confidence:"estimated",schedule:"Instructional",days:"10 months",ashaPaid:"No",notes:"$3,000 Critical Shortage."},
-{name:"DeSoto",base:53000,masters:3200,doctorate:0,ccc:0,bonus:1000,total:57200,confidence:"estimated",schedule:"Speech/Language",days:"196 days",ashaPaid:"No",notes:"Base includes CCCs. $1,000 Critical Shortage."},
-{name:"Sumter",base:51491,masters:2667,doctorate:0,ccc:0,bonus:3000,total:57158,confidence:"estimated",schedule:"Instructional",days:"198 days",ashaPaid:"No",notes:"$3,000 Critical Shortage."},
-{name:"Santa Rosa",base:43196,masters:3456,doctorate:0,ccc:10000,bonus:0,total:56652,confidence:"estimated",schedule:"Instructional",days:"196 days",ashaPaid:"No",notes:"CCC: $10,000 + $1,000/yr up to 3 yrs."},
-{name:"Charlotte",base:52058,masters:4077,doctorate:0,ccc:0,bonus:0,total:56135,confidence:"estimated",schedule:"Instructional",days:"196 days",ashaPaid:"No",notes:""},
-{name:"St. Johns",base:47500,masters:2730,doctorate:0,ccc:0,bonus:5900,total:56130,confidence:"verified",schedule:"Instructional",days:"10 months",ashaPaid:"No",notes:"$1,400 Critical Shortage. $4,500 Millage. Updated 3/20/2026."},
-{name:"Lafayette",base:53375,masters:2700,doctorate:0,ccc:0,bonus:0,total:56075,confidence:"estimated",schedule:"Instructional",days:"196 days",ashaPaid:"No",notes:""},
-{name:"Okeechobee",base:56127,masters:0,doctorate:0,ccc:0,bonus:0,total:56127,confidence:"estimated",schedule:"Administrative",days:"206 days",ashaPaid:"No",notes:"Master's required — no separate supplement."},
-{name:"Clay",base:47500,masters:2000,doctorate:0,ccc:3800,bonus:1900,total:55200,confidence:"estimated",schedule:"Instructional",days:"196 days",ashaPaid:"No",notes:"$1,900 FLDOH Licensure."},
-{name:"Lake",base:48500,masters:2875,doctorate:0,ccc:3000,bonus:750,total:55125,confidence:"estimated",schedule:"Instructional",days:"196 days",ashaPaid:"No",notes:"$750 Critical Shortage."},
-{name:"Putnam",base:45743,masters:2146,doctorate:0,ccc:7000,bonus:0,total:54889,confidence:"estimated",schedule:"Instructional",days:"196 days",ashaPaid:"No",notes:""},
-{name:"Volusia",base:48103,masters:2991,doctorate:0,ccc:3183,bonus:0,total:54277,confidence:"estimated",schedule:"Teachers",days:"196 days",ashaPaid:"No",notes:"Supplements increase with experience."},
-{name:"Pasco",base:46425,masters:3400,doctorate:0,ccc:3432,bonus:0,total:53257,confidence:"estimated",schedule:"Instructional",days:"196 days",ashaPaid:"No",notes:"$2,352 for SLP Mentors available."},
-{name:"Jackson",base:49707,masters:3100,doctorate:0,ccc:0,bonus:0,total:52807,confidence:"estimated",schedule:"Support Staff",days:"196 days",ashaPaid:"No",notes:""},
-{name:"Duval",base:47500,masters:1000,doctorate:0,ccc:2625,bonus:1500,total:52625,confidence:"estimated",schedule:"Instructional",days:"196 days",ashaPaid:"No",notes:"$1,500 ESE Supplement."},
-{name:"Hardee",base:45000,masters:3362,doctorate:0,ccc:4190,bonus:0,total:52552,confidence:"estimated",schedule:"Instructional",days:"196 days",ashaPaid:"No",notes:"$15 per IEP as Case Manager."},
-{name:"Hillsborough",base:50451,masters:0,doctorate:0,ccc:500,bonus:1400,total:52351,confidence:"verified",schedule:"Student Services",days:"198 days",ashaPaid:"No",notes:"Master's in base. $1,400 ESE. Updated 3/8/24."},
-{name:"Flagler",base:48363,masters:2750,doctorate:0,ccc:1000,bonus:0,total:52113,confidence:"estimated",schedule:"Instructional",days:"196 days",ashaPaid:"No",notes:""},
-{name:"Indian River",base:47500,masters:3909,doctorate:0,ccc:0,bonus:420,total:51829,confidence:"estimated",schedule:"Instructional",days:"10 months",ashaPaid:"No",notes:"Specialist: $3,909. $420 Title I."},
-{name:"Washington",base:42228,masters:3105,doctorate:0,ccc:6392,bonus:0,total:51725,confidence:"estimated",schedule:"Instructional",days:"196 days",ashaPaid:"No",notes:""},
-{name:"Nassau",base:46720,masters:3000,doctorate:0,ccc:1500,bonus:0,total:51220,confidence:"estimated",schedule:"Instructional",days:"196 days",ashaPaid:"No",notes:""},
-{name:"Gilchrist",base:46024,masters:2417,doctorate:0,ccc:0,bonus:2704,total:51145,confidence:"estimated",schedule:"Instructional",days:"10 months",ashaPaid:"No",notes:"SLP Supplement $2,704."},
-{name:"Levy",base:46000,masters:3094,doctorate:0,ccc:0,bonus:1000,total:50094,confidence:"estimated",schedule:"Instructional",days:"196 days",ashaPaid:"No",notes:"$1,000 ESE for caseload >15."},
-{name:"Holmes",base:41340,masters:2660,doctorate:0,ccc:6000,bonus:0,total:50000,confidence:"estimated",schedule:"Instructional",days:"196 days",ashaPaid:"No",notes:""},
-{name:"Martin",base:47500,masters:0,doctorate:0,ccc:1850,bonus:0,total:49350,confidence:"estimated",schedule:"Instructional",days:"196 days",ashaPaid:"No",notes:"Master's required. $1,800 Millage after 1 yr."},
-{name:"Bradford",base:40461,masters:2500,doctorate:0,ccc:0,bonus:6100,total:49061,confidence:"estimated",schedule:"Instructional",days:"196 days",ashaPaid:"No",notes:"$6,100 Critical Shortage."},
-{name:"Leon",base:43678,masters:1800,doctorate:0,ccc:700,bonus:2745,total:48923,confidence:"estimated",schedule:"Instructional",days:"196 days",ashaPaid:"No",notes:"$2,745 SLP Critical Shortage."},
-{name:"Alachua",base:45500,masters:1921,doctorate:0,ccc:1500,bonus:0,total:48921,confidence:"estimated",schedule:"Instructional",days:"196 days",ashaPaid:"No",notes:""},
-{name:"Union",base:46000,masters:2500,doctorate:0,ccc:0,bonus:0,total:48500,confidence:"estimated",schedule:"Instructional",days:"196 days",ashaPaid:"No",notes:""},
-{name:"Baker",base:42428,masters:2800,doctorate:0,ccc:425,bonus:1200,total:46853,confidence:"estimated",schedule:"Instructional",days:"197 days",ashaPaid:"No",notes:"$1,200 IDEA Grant."},
-{name:"Gadsden",base:45000,masters:1268,doctorate:0,ccc:0,bonus:0,total:46268,confidence:"estimated",schedule:"Instructional",days:"10 months",ashaPaid:"No",notes:""},
-{name:"Columbia",base:43275,masters:2800,doctorate:0,ccc:0,bonus:0,total:46075,confidence:"estimated",schedule:"Instructional",days:"196 days",ashaPaid:"No",notes:""},
-{name:"Taylor",base:40500,masters:3650,doctorate:0,ccc:0,bonus:0,total:44150,confidence:"estimated",schedule:"Instructional",days:"10 months",ashaPaid:"No",notes:""},
-{name:"Madison",base:39767,masters:3000,doctorate:0,ccc:0,bonus:0,total:42767,confidence:"estimated",schedule:"Instructional",days:"10 months",ashaPaid:"No",notes:""},
-{name:"Suwannee",base:0,masters:0,doctorate:0,ccc:0,bonus:0,total:0,confidence:"unknown",schedule:"Contract Only",days:"—",ashaPaid:"No",notes:"Contract agencies only."},
-{name:"Glades",base:0,masters:0,doctorate:0,ccc:0,bonus:0,total:0,confidence:"unknown",schedule:"Contract Only",days:"—",ashaPaid:"No",notes:"Contract agencies only."},
-{name:"Hamilton",base:0,masters:0,doctorate:0,ccc:0,bonus:0,total:0,confidence:"unknown",schedule:"Contract Only",days:"—",ashaPaid:"No",notes:"Contract agencies only."},
-{name:"Jefferson",base:0,masters:0,doctorate:0,ccc:0,bonus:0,total:0,confidence:"unknown",schedule:"Contract Only",days:"—",ashaPaid:"No",notes:"Contract agencies only."}
-];
+<header class="hero">
+  <div class="hero-inner">
 
-// ── PROCESS DATA ──────────────────────────────────────────
-function processDistricts(data) {
-  DISTRICTS = data.map(function(d) {
-    return {
-      name: d.name || "",
-      base: Number(d.base) || 0,
-      masters: Number(d.masters) || 0,
-      doctorate: Number(d.doctorate) || 0,
-      ccc: Number(d.ccc) || 0,
-      bonus: Number(d.bonus) || 0,
-      total: Number(d.total) || 0,
-      confidence: (d.confidence || "estimated").toLowerCase(),
-      schedule: d.schedule || "",
-      days: d.days || "",
-      ashaPaid: String(d.ashaPaid).toLowerCase() === "yes" || String(d.ashaPaid).toLowerCase() === "true" || d.ashaPaid === true,
-      notes: d.notes || "",
-      col: d.col || "",
-      homePrice: Number(d.homePrice) || 0,
-      income: Number(d.income) || 0,
-      taxRate: d.taxRate || "",
-      enrollment: Number(d.enrollment) || 0,
-      perPupil: Number(d.perPupil) || 0,
-      source: d.source || "",
-      verified: d.verified || ""
-    };
-  });
-  rankedDistricts = DISTRICTS.filter(function(d){ return d.total > 0; })
-    .sort(function(a,b){ return b.total - a.total; })
-    .map(function(d,i){ return Object.assign({}, d, { rank: i + 1 }); });
-  contractDistricts = DISTRICTS.filter(function(d){ return d.total === 0; });
-}
+    <p style="font-size:11px;font-weight:700;letter-spacing:1.5px;text-transform:uppercase;color:rgba(200,169,106,0.80);margin-bottom:14px;">
+      Built by SLPs · For SLPs · Florida 2025–26
+    </p>
 
-// ── HELPERS ───────────────────────────────────────────────
-function getRank(name) {
-  var d = rankedDistricts.find(function(r){ return r.name === name; });
-  return d ? d.rank : "—";
-}
-function fmt(n) {
-  if (!n || n === 0) return "$0";
-  return "$" + Number(n).toLocaleString("en-US");
-}
-function fmtShort(n) {
-  if (!n || n === 0) return "$0";
-  if (n >= 1000) return "$" + Math.round(n / 1000).toLocaleString() + "K";
-  return "$" + n.toLocaleString("en-US");
-}
+    <div class="district-badge">
+      🏫 District-Hired SLP Data Only
+    </div>
 
-// ── LOAD DATA + INIT UI ───────────────────────────────────
-document.addEventListener("DOMContentLoaded", function () {
-  // Load immediately from fallback so dropdowns populate right away
-  processDistricts(FALLBACK);
-  dataSource = "cached";
-  initUI();
+    <p class="hero-eyeline">Florida School-Based</p>
+    <h1 class="hero-h1">SLP Salary Comparison</h1>
+    <p class="hero-sub">
+      Salary transparency for Florida's district-employed SLP workforce.
+      Built to support advocacy, retention, and informed career decisions.
+    </p>
 
-  // Then try live data in the background — if it works, refresh the data
-  try {
-    fetch(DATA_URL)
-      .then(function(res) {
-        if (!res.ok) throw new Error("Bad response");
-        return res.json();
-      })
-      .then(function(json) {
-        if (json && json.districts && json.districts.length > 0) {
-          processDistricts(json.districts);
-          dataSource = "live";
-        }
-      })
-      .catch(function() {
-        // Live data not available — fallback already loaded, no problem
-      });
-  } catch(e) {
-    // fetch not supported or other error — fallback already loaded
-  }
-});
+    <div class="hero-warning">
+      <div class="hero-warning-icon">⚠️</div>
+      <div class="hero-warning-text">
+        <span class="em1">This tool <b>ONLY</b> reflects salaries for SLPs directly employed by school districts.</span>
+        It does <b>NOT</b> include contract or agency-based positions.
+      </div>
+    </div>
 
-// ═══════════════════════════════════════════════════════════
-// INIT UI — runs after data loads
-// ═══════════════════════════════════════════════════════════
-function initUI() {
-  var tabs = document.querySelectorAll(".tab");
-  var panels = document.querySelectorAll(".panel");
+    <div class="stats-row">
+      <div class="stat">
+        <div class="stat-num">67</div>
+        <div class="stat-label">FL Districts</div>
+      </div>
+      <div class="stat">
+        <div class="stat-num">$74K</div>
+        <div class="stat-label">Top Total Comp</div>
+      </div>
+      <div class="stat">
+        <div class="stat-num">$42K</div>
+        <div class="stat-label">Lowest Starting</div>
+      </div>
+      <div class="stat">
+        <div class="stat-num stat-num--year">2025–26</div>
+        <div class="stat-label">School Year</div>
+      </div>
+    </div>
 
-  function switchTab(target) {
-    tabs.forEach(function(t){ t.classList.remove("active"); });
-    panels.forEach(function(p){ p.classList.remove("active"); });
-    var btn = document.querySelector('.tab[data-tab="' + target + '"]');
-    var panel = document.getElementById(target);
-    if (btn) btn.classList.add("active");
-    if (panel) panel.classList.add("active");
-    var page = document.querySelector(".page");
-    if (page) page.scrollIntoView({ behavior: "smooth", block: "start" });
-  }
+    <div class="tabs-bar">
+      <button class="tab active" data-tab="calculator">Salary Calculator</button>
+      <button class="tab" data-tab="compare">Compare Districts</button>
+      <button class="tab" data-tab="rankings">All Districts</button>
+      <button class="tab" data-tab="profile">District Profile</button>
+      <button class="tab" data-tab="corrections">Submit Correction</button>
+    </div>
 
-  tabs.forEach(function(tab) {
-    tab.addEventListener("click", function() { switchTab(tab.getAttribute("data-tab")); });
-  });
+  </div>
+</header>
 
-  // ── POPULATE DROPDOWNS ────────────────────────────────
-  var districtSelect = document.getElementById("district-select");
-  var compareA = document.getElementById("compare-a");
-  var compareB = document.getElementById("compare-b");
-  var skeleton = document.getElementById("district-skeleton");
-  var profileSelect = document.getElementById("profile-select");
-  var corrDistrictSelect = document.getElementById("c-district-select");
+<section class="wow-section">
+  <div class="wow-inner">
+    <div class="wow-label">Statewide Snapshot</div>
+    <h2 class="wow-headline">Florida SLP salaries are not even close.</h2>
+    <p class="wow-sub">
+      Starting pay varies dramatically across districts, creating real recruitment and retention challenges statewide.
+    </p>
 
-  var sortedNames = DISTRICTS.filter(function(d){ return d.total > 0; })
-    .sort(function(a,b){ return a.name.localeCompare(b.name); });
+    <div class="wow-gap">
+      <div class="wow-gap-num">$32K</div>
+      <div class="wow-gap-text">
+        <div class="wow-gap-title">Difference</div>
+        <div class="wow-gap-desc">Between the highest total compensation and the lowest starting pay shown here.</div>
+      </div>
+    </div>
 
-  function populateDropdown(el) {
-    if (!el) return;
-    sortedNames.forEach(function(d) {
-      var opt = document.createElement("option");
-      opt.value = d.name;
-      opt.textContent = d.name + " County";
-      el.appendChild(opt);
-    });
-  }
+    <div class="wow-bars">
+      <div class="wow-bar-row">
+        <div class="wow-bar-meta">
+          <div class="wow-bar-label">Top Total Compensation</div>
+          <div class="wow-bar-value high">$74K</div>
+        </div>
+        <div class="wow-bar-track">
+          <div class="wow-bar-fill high"></div>
+        </div>
+      </div>
 
-  populateDropdown(districtSelect);
-  populateDropdown(compareA);
-  populateDropdown(compareB);
-  populateDropdown(profileSelect);
-  populateDropdown(corrDistrictSelect);
+      <div class="wow-gap-marker">
+        <div class="wow-gap-marker-line"></div>
+        <div class="wow-gap-marker-pill">Gap</div>
+        <div class="wow-gap-marker-line"></div>
+      </div>
 
-  if (skeleton) skeleton.style.display = "none";
-  if (districtSelect) districtSelect.style.display = "";
+      <div class="wow-bar-row">
+        <div class="wow-bar-meta">
+          <div class="wow-bar-label">Lowest Starting Pay</div>
+          <div class="wow-bar-value low">$42K</div>
+        </div>
+        <div class="wow-bar-track">
+          <div class="wow-bar-fill low"></div>
+        </div>
+      </div>
+    </div>
 
-  // ── SALARY CALCULATOR ─────────────────────────────────
-  var calcBtn = document.getElementById("calc-btn");
-  var resultBox = document.getElementById("salary-result");
+    <div class="wow-takeaway">
+      <span>That gap can shape where SLPs apply, stay, or leave.</span>
+    </div>
+  </div>
+</section>
 
-  // Master's and Doctorate are mutually exclusive — you only get one
-  var mastersCheck = document.getElementById("masters-check");
-  var doctorateCheck = document.getElementById("doctorate-check");
-  if (mastersCheck && doctorateCheck) {
-    mastersCheck.addEventListener("change", function() {
-      if (mastersCheck.checked) doctorateCheck.checked = false;
-    });
-    doctorateCheck.addEventListener("change", function() {
-      if (doctorateCheck.checked) mastersCheck.checked = false;
-    });
-  }
+<main class="page">
 
-  if (calcBtn) calcBtn.addEventListener("click", function () {
-    var name = districtSelect ? districtSelect.value : "";
-    if (!name) {
-      if (districtSelect) { districtSelect.style.borderColor = "#e05555"; setTimeout(function(){ districtSelect.style.borderColor = ""; }, 2000); }
-      return;
-    }
-    var d = DISTRICTS.find(function(x){ return x.name === name; });
-    if (!d) return;
+  <section class="panel active" id="calculator">
+    <div class="card">
+      <h2 class="card-title">Look Up Your Starting Salary</h2>
+      <p class="card-desc">
+        Select a district and add any available supplements to estimate total compensation.
+      </p>
+      <div class="card-sublabel">District-employed SLPs only</div>
 
-    var inclMasters = document.getElementById("masters-check") && document.getElementById("masters-check").checked;
-    var inclDoctorate = document.getElementById("doctorate-check") && document.getElementById("doctorate-check").checked;
-    var inclAsha = document.getElementById("asha-check") && document.getElementById("asha-check").checked;
+      <label for="district-select">District</label>
+      <div class="skeleton" id="district-skeleton"></div>
+      <div class="retry-row" id="district-retry-row">
+        <span>Having trouble loading districts — tap to retry</span>
+        <button class="retry-btn" type="button">Retry</button>
+      </div>
+      <select id="district-select" style="display:none;">
+        <option value="">Choose a district</option>
+      </select>
 
-    var base = d.base;
-    var masters = inclMasters ? d.masters : 0;
-    var doctorate = inclDoctorate ? d.doctorate : 0;
-    var ccc = inclAsha ? d.ccc : 0;
-    var bonus = d.bonus;
-    var total = base + masters + doctorate + ccc + bonus;
-    var rank = getRank(name);
+      <div class="checkbox-row">
+        <input type="checkbox" id="masters-check">
+        <label for="masters-check" style="margin:0; text-transform:none; letter-spacing:0; font-size:13.5px; font-weight:400;">
+          Include Master's supplement
+        </label>
+      </div>
 
-    var el;
-    el = document.getElementById("r-district"); if (el) el.textContent = name + " County";
-    el = document.getElementById("r-sub"); if (el) el.textContent = d.schedule + " · " + d.days;
-    el = document.getElementById("r-total"); if (el) el.textContent = fmt(total);
-    el = document.getElementById("r-rank"); if (el) el.textContent = "#" + rank;
-    el = document.getElementById("r-base"); if (el) el.textContent = fmt(base);
-    el = document.getElementById("r-masters"); if (el) el.textContent = inclMasters ? "+" + fmt(masters) : "$0";
-    el = document.getElementById("r-doctorate"); if (el) el.textContent = inclDoctorate ? "+" + fmt(doctorate) : "$0";
-    el = document.getElementById("r-asha"); if (el) el.textContent = inclAsha ? "+" + fmt(ccc) : "$0";
-    el = document.getElementById("r-bonus"); if (el) el.textContent = fmt(bonus);
+      <div class="checkbox-row">
+        <input type="checkbox" id="doctorate-check">
+        <label for="doctorate-check" style="margin:0; text-transform:none; letter-spacing:0; font-size:13.5px; font-weight:400;">
+          Include Doctorate supplement
+        </label>
+      </div>
+      <div class="hint" style="margin-left:25px;">Select one or the other. Districts pay Master's OR Doctorate, not both.</div>
 
-    var confEl = document.getElementById("r-confidence");
-    if (confEl) {
-      if (d.confidence === "verified") { confEl.className = "conf-pill conf-v"; confEl.textContent = "✓ Verified from primary source"; }
-      else if (d.confidence === "unknown") { confEl.className = "conf-pill conf-e"; confEl.textContent = "✗ Contract only — no direct-hire data"; }
-      else { confEl.className = "conf-pill conf-e"; confEl.textContent = "Estimated — needs verification"; }
-    }
+      <div class="checkbox-row">
+        <input type="checkbox" id="asha-check">
+        <label for="asha-check" style="margin:0; text-transform:none; letter-spacing:0; font-size:13.5px; font-weight:400;">
+          Include ASHA / CCC supplement
+        </label>
+      </div>
 
-    var notesText = d.notes || "No additional notes for this district.";
-    if (d.ashaPaid) notesText += "\n\n✓ This district pays ASHA dues for SLPs.";
-    if (dataSource === "live") notesText += "\n\n📡 Data loaded live from Google Sheet.";
-    el = document.getElementById("r-notes"); if (el) el.textContent = notesText;
+      <button class="btn-primary" id="calc-btn" type="button">Calculate Salary</button>
 
-    if (resultBox) { resultBox.style.display = "block"; resultBox.scrollIntoView({ behavior: "smooth", block: "start" }); }
-  });
+      <div class="result-box" id="salary-result">
+        <div class="dist-name" id="r-district">District Name</div>
+        <div class="dist-sub" id="r-sub">District-employed SLP</div>
 
-  // ── COMPARE DISTRICTS ─────────────────────────────────
-  var compareBtn = document.getElementById("compare-btn");
-  var compareTable = document.getElementById("compare-table");
+        <div class="salary-total-card">
+          <div class="stc-left">
+            <div class="stc-label">Estimated Total Compensation</div>
+            <div class="stc-amount" id="r-total">$0</div>
+          </div>
+          <div class="stc-right">
+            <div class="stc-rank" id="r-rank">#—</div>
+            <div class="stc-rank-label">Statewide Rank</div>
+          </div>
+        </div>
 
-  if (compareBtn) compareBtn.addEventListener("click", function () {
-    var nameA = compareA ? compareA.value : "";
-    var nameB = compareB ? compareB.value : "";
-    if (!nameA || !nameB) return;
+        <div class="bk-line">
+          <span class="bk-lbl">Base salary</span>
+          <span class="bk-val" id="r-base">$0</span>
+        </div>
+        <div class="bk-line">
+          <span class="bk-lbl">Master's supplement</span>
+          <span class="bk-val pos" id="r-masters">$0</span>
+        </div>
+        <div class="bk-line">
+          <span class="bk-lbl">Doctorate supplement</span>
+          <span class="bk-val pos" id="r-doctorate">$0</span>
+        </div>
+        <div class="bk-line">
+          <span class="bk-lbl">ASHA / CCC supplement</span>
+          <span class="bk-val asha" id="r-asha">$0</span>
+        </div>
+        <div class="bk-line">
+          <span class="bk-lbl">Other bonuses</span>
+          <span class="bk-val bonus" id="r-bonus">$0</span>
+        </div>
 
-    var dA = DISTRICTS.find(function(x){ return x.name === nameA; });
-    var dB = DISTRICTS.find(function(x){ return x.name === nameB; });
-    if (!dA || !dB) return;
+        <div class="conf-pill conf-e" id="r-confidence">Estimated / needs verification</div>
 
-    var headA = document.getElementById("compare-head-a"); if (headA) headA.textContent = nameA;
-    var headB = document.getElementById("compare-head-b"); if (headB) headB.textContent = nameB;
+        <div class="notes-box" id="r-notes">
+          Notes about district salary structure or supplements will appear here.
+        </div>
+      </div>
+    </div>
+  </section>
 
-    function setCmp(id, valA, valB) {
-      var elA = document.getElementById(id + "-a");
-      var elB = document.getElementById(id + "-b");
-      if (elA) { elA.textContent = fmt(valA); elA.classList.remove("winner"); if (valA > valB) elA.classList.add("winner"); }
-      if (elB) { elB.textContent = fmt(valB); elB.classList.remove("winner"); if (valB > valA) elB.classList.add("winner"); }
-    }
+  <section class="panel" id="compare">
+    <div class="card">
+      <h2 class="card-title">Compare Two Districts</h2>
+      <p class="card-desc">
+        Compare district salary components side by side.
+      </p>
 
-    setCmp("cmp-base", dA.base, dB.base);
-    setCmp("cmp-masters", dA.masters, dB.masters);
-    setCmp("cmp-doctorate", dA.doctorate, dB.doctorate);
-    setCmp("cmp-asha", dA.ccc, dB.ccc);
-    setCmp("cmp-bonus", dA.bonus, dB.bonus);
-    setCmp("cmp-total", dA.total, dB.total);
+      <div class="two-col">
+        <div>
+          <label for="compare-a">District A</label>
+          <select id="compare-a">
+            <option value="">Choose district</option>
+          </select>
+        </div>
+        <div>
+          <label for="compare-b">District B</label>
+          <select id="compare-b">
+            <option value="">Choose district</option>
+          </select>
+        </div>
+      </div>
 
-    if (compareTable) { compareTable.style.display = ""; compareTable.scrollIntoView({ behavior: "smooth", block: "start" }); }
-  });
+      <button class="btn-primary" id="compare-btn" type="button">Compare Districts</button>
 
-  // ── RANKINGS TABLE ────────────────────────────────────
-  var rankBody = document.getElementById("rank-table-body");
-  var rankSearch = document.getElementById("rank-search");
-  var rankSort = document.getElementById("rank-sort");
+      <div class="cmp-wrap">
+        <table class="cmp-table" id="compare-table" style="display:none;">
+          <thead>
+            <tr>
+              <th>Category</th>
+              <th class="col-a" id="compare-head-a">District A</th>
+              <th class="col-w" id="compare-head-b">District B</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td>Base salary</td>
+              <td class="amt" id="cmp-base-a">$0</td>
+              <td class="amt" id="cmp-base-b">$0</td>
+            </tr>
+            <tr>
+              <td>Master's supplement</td>
+              <td class="amt" id="cmp-masters-a">$0</td>
+              <td class="amt" id="cmp-masters-b">$0</td>
+            </tr>
+            <tr>
+              <td>Doctorate supplement</td>
+              <td class="amt" id="cmp-doctorate-a">$0</td>
+              <td class="amt" id="cmp-doctorate-b">$0</td>
+            </tr>
+            <tr>
+              <td>ASHA / CCC supplement</td>
+              <td class="amt" id="cmp-asha-a">$0</td>
+              <td class="amt" id="cmp-asha-b">$0</td>
+            </tr>
+            <tr>
+              <td>Other bonuses</td>
+              <td class="amt" id="cmp-bonus-a">$0</td>
+              <td class="amt" id="cmp-bonus-b">$0</td>
+            </tr>
+            <tr class="row-total">
+              <td>Total comp</td>
+              <td class="amt" id="cmp-total-a">$0</td>
+              <td class="amt" id="cmp-total-b">$0</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </section>
 
-  function renderRankings() {
-    var query = rankSearch ? rankSearch.value.toLowerCase().trim() : "";
-    var sortBy = rankSort ? rankSort.value : "rank";
-    var data = rankedDistricts.slice();
+  <section class="panel" id="rankings">
+    <div class="card">
+      <h2 class="card-title">All Districts</h2>
+      <p class="card-desc">
+        Browse all districts and compare total compensation at a glance.
+      </p>
 
-    if (query) data = data.filter(function(d){ return d.name.toLowerCase().indexOf(query) >= 0; });
-    if (sortBy === "district") data.sort(function(a,b){ return a.name.localeCompare(b.name); });
-    else if (sortBy === "total") data.sort(function(a,b){ return b.total - a.total; });
-    else if (sortBy === "base") data.sort(function(a,b){ return b.base - a.base; });
+      <div class="search-row">
+        <input type="text" id="rank-search" placeholder="Search district name">
+        <select id="rank-sort">
+          <option value="rank">Sort by rank</option>
+          <option value="district">Sort by district</option>
+          <option value="total">Sort by total compensation</option>
+          <option value="base">Sort by base salary</option>
+        </select>
+      </div>
 
-    if (!rankBody) return;
-    rankBody.innerHTML = "";
+      <table class="rank-table" id="rank-table">
+        <thead>
+          <tr>
+            <th>#</th>
+            <th>District</th>
+            <th>Total</th>
+            <th>Base</th>
+            <th>Confidence</th>
+          </tr>
+        </thead>
+        <tbody id="rank-table-body">
+          <tr>
+            <td class="rank-num">1</td>
+            <td class="rank-district">Loading districts…</td>
+            <td class="rank-total">$0</td>
+            <td class="rank-base">$0</td>
+            <td class="rank-conf"><span class="badge-e">Est</span></td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+  </section>
 
-    if (data.length === 0) {
-      rankBody.innerHTML = '<tr><td colspan="5" style="text-align:center;padding:24px;color:#8fa8b8;">No districts match your search.</td></tr>';
-      return;
-    }
+  <section class="panel" id="profile">
+    <div class="card">
+      <button class="back-btn" type="button">← Back</button>
 
-    data.forEach(function(d) {
-      var tr = document.createElement("tr");
-      tr.innerHTML = '<td class="rank-num">' + d.rank + '</td>' +
-        '<td class="rank-district">' + d.name + '</td>' +
-        '<td class="rank-total">' + fmt(d.total) + '</td>' +
-        '<td class="rank-base">' + fmt(d.base) + '</td>' +
-        '<td class="rank-conf"><span class="badge-' + (d.confidence === "verified" ? "v" : "e") + '">' + (d.confidence === "verified" ? "Verified" : "Est") + '</span></td>';
-      tr.addEventListener("click", function(){ openProfile(d.name); });
-      rankBody.appendChild(tr);
-    });
+      <label for="profile-select">Select a District</label>
+      <select id="profile-select">
+        <option value="">Choose a district</option>
+      </select>
 
-    if (!query) {
-      contractDistricts.forEach(function(d) {
-        var tr = document.createElement("tr");
-        tr.innerHTML = '<td class="rank-num" style="color:#ccc;">—</td>' +
-          '<td class="rank-district" style="color:#8fa8b8;">' + d.name + '</td>' +
-          '<td class="rank-total" style="color:#ccc;">N/A</td>' +
-          '<td class="rank-base" style="color:#ccc;">Contract</td>' +
-          '<td class="rank-conf"><span class="badge-e" style="background:#fff0f0;color:#b83030;">N/A</span></td>';
-        rankBody.appendChild(tr);
-      });
-    }
-  }
+      <div class="profile-hero-card" id="profile-card" style="display:none;margin-top:20px;">
+        <div class="ph-eyeline">District Profile</div>
+        <div class="ph-name" id="profile-name">District Name</div>
+        <div class="ph-meta" id="profile-meta">Florida school district</div>
+        <div class="ph-salary" id="profile-salary">$0</div>
+        <div class="ph-note">Estimated total compensation</div>
+      </div>
 
-  if (rankSearch) rankSearch.addEventListener("input", renderRankings);
-  if (rankSort) rankSort.addEventListener("change", renderRankings);
-  renderRankings();
+      <div id="profile-details" style="display:none;">
+      <div class="profile-section">💰 Salary Breakdown</div>
+      <div class="profile-line">
+        <span class="lbl">Base salary</span>
+        <span class="val" id="profile-base">$0</span>
+      </div>
+      <div class="profile-line">
+        <span class="lbl">Master's supplement</span>
+        <span class="val" id="profile-masters">$0</span>
+      </div>
+      <div class="profile-line">
+        <span class="lbl">Doctorate supplement</span>
+        <span class="val" id="profile-doctorate">$0</span>
+      </div>
+      <div class="profile-line">
+        <span class="lbl">ASHA / CCC supplement</span>
+        <span class="val" id="profile-asha">$0</span>
+      </div>
+      <div class="profile-line">
+        <span class="lbl">Other bonuses</span>
+        <span class="val" id="profile-bonus">$0</span>
+      </div>
 
-  // ── DISTRICT PROFILE ──────────────────────────────────
-  var profileCard = document.getElementById("profile-card");
-  var profileDetails = document.getElementById("profile-details");
+      <div class="profile-section">📋 Contract Details</div>
+      <div class="profile-line">
+        <span class="lbl">Work Days / Contract</span>
+        <span class="val" id="profile-days">—</span>
+      </div>
+      <div class="profile-line">
+        <span class="lbl">Salary Schedule Type</span>
+        <span class="val" id="profile-schedule">—</span>
+      </div>
+      <div class="profile-line">
+        <span class="lbl">ASHA Dues Paid?</span>
+        <span class="val" id="profile-asha-paid">—</span>
+      </div>
 
-  function openProfile(name) {
-    var d = rankedDistricts.find(function(x){ return x.name === name; }) || DISTRICTS.find(function(x){ return x.name === name; });
-    if (!d) return;
-    if (profileSelect) profileSelect.value = name;
+      <div class="profile-section">🏙️ Cost of Living (County)</div>
+      <div class="profile-line">
+        <span class="lbl">Cost of Living Index (US avg = 100)</span>
+        <span class="val" id="profile-col">—</span>
+      </div>
+      <div class="profile-line">
+        <span class="lbl">Average Home Price</span>
+        <span class="val" id="profile-homeprice">—</span>
+      </div>
+      <div class="profile-line">
+        <span class="lbl">Median Household Income</span>
+        <span class="val" id="profile-income">—</span>
+      </div>
+      <div class="profile-line">
+        <span class="lbl">Property Tax Rate</span>
+        <span class="val" id="profile-taxrate">—</span>
+      </div>
 
-    var el;
-    el = document.getElementById("profile-name"); if (el) el.textContent = name + " County";
-    el = document.getElementById("profile-meta"); if (el) el.textContent = d.schedule + " · " + d.days + (d.ashaPaid ? " · ASHA dues paid" : "");
-    el = document.getElementById("profile-salary"); if (el) el.textContent = fmt(d.total);
-    el = document.getElementById("profile-base"); if (el) el.textContent = fmt(d.base);
-    el = document.getElementById("profile-masters"); if (el) el.textContent = fmt(d.masters);
-    el = document.getElementById("profile-doctorate"); if (el) el.textContent = fmt(d.doctorate);
-    el = document.getElementById("profile-asha"); if (el) el.textContent = fmt(d.ccc);
-    el = document.getElementById("profile-bonus"); if (el) el.textContent = fmt(d.bonus);
-    el = document.getElementById("profile-notes"); if (el) el.textContent = d.notes || "No additional notes.";
-    el = document.getElementById("profile-schedule"); if (el) el.textContent = d.schedule || "—";
-    el = document.getElementById("profile-days"); if (el) el.textContent = d.days || "—";
-    el = document.getElementById("profile-asha-paid"); if (el) el.textContent = d.ashaPaid ? "Yes" : "No";
-    el = document.getElementById("profile-col"); if (el) el.textContent = d.col || "—";
-    el = document.getElementById("profile-homeprice"); if (el) el.textContent = d.homePrice ? "$" + Number(d.homePrice).toLocaleString() : "—";
-    el = document.getElementById("profile-income"); if (el) el.textContent = d.income ? "$" + Number(d.income).toLocaleString() : "—";
-    el = document.getElementById("profile-taxrate"); if (el) el.textContent = d.taxRate ? d.taxRate + "%" : "—";
-    el = document.getElementById("profile-enrollment"); if (el) el.textContent = d.enrollment ? Number(d.enrollment).toLocaleString() : "—";
-    el = document.getElementById("profile-perpupil"); if (el) el.textContent = d.perPupil ? "$" + Number(d.perPupil).toLocaleString() : "—";
-    el = document.getElementById("profile-source"); if (el) el.textContent = d.source || "—";
-    el = document.getElementById("profile-verified"); if (el) el.textContent = d.verified || "—";
-    el = document.getElementById("profile-confidence"); if (el) el.textContent = d.confidence || "—";
+      <div class="profile-section">🏫 District Size</div>
+      <div class="profile-line">
+        <span class="lbl">Student Enrollment</span>
+        <span class="val" id="profile-enrollment">—</span>
+      </div>
+      <div class="profile-line">
+        <span class="lbl">Per Pupil Expenditure</span>
+        <span class="val" id="profile-perpupil">—</span>
+      </div>
 
-    if (profileCard) profileCard.style.display = "";
-    if (profileDetails) profileDetails.style.display = "";
-    switchTab("profile");
-  }
+      <div class="profile-section">✅ Data Quality</div>
+      <div class="profile-line">
+        <span class="lbl">Data Source</span>
+        <span class="val" id="profile-source">—</span>
+      </div>
+      <div class="profile-line">
+        <span class="lbl">Last Verified</span>
+        <span class="val" id="profile-verified">—</span>
+      </div>
+      <div class="profile-line">
+        <span class="lbl">Confidence</span>
+        <span class="val" id="profile-confidence">—</span>
+      </div>
 
-  if (profileSelect) {
-    profileSelect.addEventListener("change", function () {
-      if (profileSelect.value) openProfile(profileSelect.value);
-      else { if (profileCard) profileCard.style.display = "none"; if (profileDetails) profileDetails.style.display = "none"; }
-    });
-  }
+      <div class="profile-section">📝 Notes</div>
+      <div class="notes-box" id="profile-notes">
+        Additional district notes and verification details will appear here.
+      </div>
+      </div>
+    </div>
+  </section>
 
-  var backBtn = document.querySelector(".back-btn");
-  if (backBtn) backBtn.addEventListener("click", function(){ switchTab("rankings"); });
+  <section class="panel" id="corrections">
+    <div class="card">
+      <h2 class="card-title">Submit a Correction</h2>
+      <p class="card-desc">
+        Know something that needs updating? You can submit up to 3 corrections at once. Only the first is required.
+      </p>
 
-  // ── CORRECTIONS FORM ──────────────────────────────────
-  var correctionForm = document.getElementById("correction-form");
-  var successBox = document.getElementById("r-success");
-  var errorBox = document.getElementById("r-error");
+      <div class="info-banner">
+        Select the category, enter the correct value, and include a source if you have one.
+        Becky and Michelle will verify before any changes are made.
+      </div>
 
-  if (correctionForm) correctionForm.addEventListener("submit", function (e) {
-    e.preventDefault();
+      <form id="correction-form">
+        <label for="c-district-select">District <span class="req">*</span></label>
+        <select id="c-district-select" required>
+          <option value="">Choose a district</option>
+        </select>
 
-    var name = document.getElementById("c-name") ? document.getElementById("c-name").value.trim() : "";
-    var email = document.getElementById("c-email") ? document.getElementById("c-email").value.trim() : "";
-    var district = corrDistrictSelect ? corrDistrictSelect.value : "";
-    var source = document.getElementById("c-source") ? document.getElementById("c-source").value.trim() : "";
-    var notes = document.getElementById("c-notes") ? document.getElementById("c-notes").value.trim() : "";
+        <div class="two-col" style="margin-top:16px;">
+          <div>
+            <label for="c-name">Your Name <span class="opt">(optional)</span></label>
+            <input type="text" id="c-name" name="name">
+          </div>
+          <div>
+            <label for="c-email">Your Email <span class="opt">(optional)</span></label>
+            <input type="email" id="c-email" name="email">
+            <div class="hint">Only used if we need to follow up</div>
+          </div>
+        </div>
 
-    var corrections = [];
-    for (var i = 1; i <= 3; i++) {
-      var catEl = document.getElementById("c" + i + "-category");
-      var valEl = document.getElementById("c" + i + "-value");
-      var cat = catEl ? catEl.value : "";
-      var val = valEl ? valEl.value.trim() : "";
-      if (cat && val) corrections.push({ category: cat, value: val });
-    }
+        <!-- Correction 1 (required) -->
+        <div style="margin-top:24px;padding-top:20px;border-top:1px solid rgba(11,42,60,.08);">
+          <label style="color:#C8A96A;font-size:12px;font-weight:700;letter-spacing:1px;">Correction 1 <span class="req">*</span></label>
+          <div class="two-col" style="margin-top:8px;">
+            <div>
+              <label for="c1-category">Category</label>
+              <select id="c1-category" required>
+                <option value="">Select what to correct</option>
+                <option value="Base Salary">Base Salary</option>
+                <option value="Masters Supplement">Master's Supplement</option>
+                <option value="Doctorate Supplement">Doctorate Supplement</option>
+                <option value="ASHA/CCC Supplement">ASHA / CCC Supplement</option>
+                <option value="Supervisor Supplement">Supervisor Supplement</option>
+                <option value="Mentor Supplement">Mentor Supplement</option>
+                <option value="Referendum/Millage">Referendum / Millage</option>
+                <option value="Critical Shortage">Critical Shortage</option>
+                <option value="Other">Other</option>
+              </select>
+            </div>
+            <div>
+              <label for="c1-value">Correct Value</label>
+              <input type="text" id="c1-value" placeholder="e.g. $4,500 or Yes" required>
+            </div>
+          </div>
+        </div>
 
-    if (!district) { if (errorBox) { errorBox.textContent = "Please select a district."; errorBox.style.display = "block"; } return; }
-    if (corrections.length === 0) { if (errorBox) { errorBox.textContent = "Please fill in at least one correction."; errorBox.style.display = "block"; } return; }
+        <!-- Correction 2 (optional) -->
+        <div style="margin-top:20px;padding-top:16px;border-top:1px solid rgba(11,42,60,.06);">
+          <label style="color:#C8A96A;font-size:12px;font-weight:700;letter-spacing:1px;">Correction 2 <span class="opt">(optional)</span></label>
+          <div class="two-col" style="margin-top:8px;">
+            <div>
+              <label for="c2-category">Category</label>
+              <select id="c2-category">
+                <option value="">— None —</option>
+                <option value="Base Salary">Base Salary</option>
+                <option value="Masters Supplement">Master's Supplement</option>
+                <option value="Doctorate Supplement">Doctorate Supplement</option>
+                <option value="ASHA/CCC Supplement">ASHA / CCC Supplement</option>
+                <option value="Supervisor Supplement">Supervisor Supplement</option>
+                <option value="Mentor Supplement">Mentor Supplement</option>
+                <option value="Referendum/Millage">Referendum / Millage</option>
+                <option value="Critical Shortage">Critical Shortage</option>
+                <option value="Other">Other</option>
+              </select>
+            </div>
+            <div>
+              <label for="c2-value">Correct Value</label>
+              <input type="text" id="c2-value" placeholder="e.g. $1,400">
+            </div>
+          </div>
+        </div>
 
-    if (successBox) successBox.style.display = "none";
-    if (errorBox) errorBox.style.display = "none";
+        <!-- Correction 3 (optional) -->
+        <div style="margin-top:20px;padding-top:16px;border-top:1px solid rgba(11,42,60,.06);">
+          <label style="color:#C8A96A;font-size:12px;font-weight:700;letter-spacing:1px;">Correction 3 <span class="opt">(optional)</span></label>
+          <div class="two-col" style="margin-top:8px;">
+            <div>
+              <label for="c3-category">Category</label>
+              <select id="c3-category">
+                <option value="">— None —</option>
+                <option value="Base Salary">Base Salary</option>
+                <option value="Masters Supplement">Master's Supplement</option>
+                <option value="Doctorate Supplement">Doctorate Supplement</option>
+                <option value="ASHA/CCC Supplement">ASHA / CCC Supplement</option>
+                <option value="Supervisor Supplement">Supervisor Supplement</option>
+                <option value="Mentor Supplement">Mentor Supplement</option>
+                <option value="Referendum/Millage">Referendum / Millage</option>
+                <option value="Critical Shortage">Critical Shortage</option>
+                <option value="Other">Other</option>
+              </select>
+            </div>
+            <div>
+              <label for="c3-value">Correct Value</label>
+              <input type="text" id="c3-value" placeholder="e.g. ASHA dues paid">
+            </div>
+          </div>
+        </div>
 
-    var submitBtn = correctionForm.querySelector(".btn-primary");
-    if (submitBtn) { submitBtn.disabled = true; submitBtn.textContent = "Sending…"; }
+        <label for="c-source" style="margin-top:20px;">How do you know? <span class="opt">(optional)</span></label>
+        <textarea id="c-source" placeholder="e.g. I work in this district. Or: confirmed with HR on 3/15/2026. Or: link to salary schedule."></textarea>
 
-    fetch(APPS_SCRIPT_URL, {
-      method: "POST",
-      mode: "no-cors",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        name: name || "Anonymous",
-        email: email || "Not provided",
-        district: district,
-        corrections: corrections,
-        source: source || "Not provided",
-        notes: notes || "",
-        timestamp: new Date().toISOString()
-      })
-    })
-    .then(function() {
-      if (successBox) successBox.style.display = "block";
-      if (submitBtn) { submitBtn.disabled = false; submitBtn.textContent = "Submit Correction"; }
-      correctionForm.reset();
-    })
-    .catch(function() {
-      if (errorBox) { errorBox.textContent = "Something went wrong. Please try again."; errorBox.style.display = "block"; }
-      if (submitBtn) { submitBtn.disabled = false; submitBtn.textContent = "Submit Correction"; }
-    });
-  });
+        <label for="c-notes" style="margin-top:12px;">Additional Notes <span class="opt">(optional)</span></label>
+        <textarea id="c-notes" style="min-height:60px;" placeholder="Anything else we should know?"></textarea>
 
-  // ── HERO STATS FROM LIVE DATA ─────────────────────────
-  var topTotal = rankedDistricts[0] ? rankedDistricts[0].total : 0;
-  var lowestStart = rankedDistricts[rankedDistricts.length - 1] ? rankedDistricts[rankedDistricts.length - 1].total : 0;
-  var gap = topTotal - lowestStart;
+        <button class="btn-primary" type="submit">Submit Correction</button>
 
-  var statNums = document.querySelectorAll(".stat-num");
-  if (statNums.length >= 3) { statNums[1].textContent = fmtShort(topTotal); statNums[2].textContent = fmtShort(lowestStart); }
+        <div class="success-box" id="r-success">
+          <strong>Thank you!</strong> Your correction has been received. Becky and Michelle will review it and update the data once verified.
+        </div>
+        <div class="error-box" id="r-error">
+          Something went wrong. Please refresh the page and try again.
+        </div>
+      </form>
+    </div>
 
-  var wowGapNum = document.querySelector(".wow-gap-num");
-  if (wowGapNum) wowGapNum.textContent = fmtShort(gap);
+    <div class="site-footer">
+      © 2025 Florida SLP Salary Comparison · Built by SLPs, for SLPs.
+    </div>
+  </section>
 
-  var wowBarValues = document.querySelectorAll(".wow-bar-value");
-  if (wowBarValues.length >= 2) { wowBarValues[0].textContent = fmtShort(topTotal); wowBarValues[1].textContent = fmtShort(lowestStart); }
+</main>
 
-  var lowFill = document.querySelector(".wow-bar-fill.low");
-  if (lowFill && topTotal > 0) lowFill.style.width = Math.round((lowestStart / topTotal) * 100) + "%";
-
-} // end initUI
-
-// ── FULL-PAGE PARALLAX ───────────────────────────────────
-(function() {
-  var bg = document.getElementById("page-bg");
-  var overlay = document.getElementById("page-overlay");
-  if (!bg || !overlay) return;
-  var prefersReduced = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
-
-  function getOverlayColor(scrollY) {
-    var docHeight = document.documentElement.scrollHeight - window.innerHeight;
-    var pct = docHeight > 0 ? scrollY / docHeight : 0;
-    if (pct < 0.15) { var t = pct / 0.15; return "rgba(11, 42, 60, " + (0.82 + t * 0.06) + ")"; }
-    else if (pct < 0.35) { var t2 = (pct - 0.15) / 0.20; return "rgba(" + Math.round(11 + t2*8) + "," + Math.round(42 + t2*14) + "," + Math.round(60 + t2*12) + "," + (0.88 - t2*0.04) + ")"; }
-    else if (pct < 0.7) { var t3 = (pct - 0.35) / 0.35; return "rgba(" + Math.round(19 + t3*20) + "," + Math.round(56 + t3*24) + "," + Math.round(72 + t3*20) + "," + (0.84 - t3*0.02) + ")"; }
-    else { var t4 = (pct - 0.7) / 0.30; return "rgba(" + Math.round(39 - t4*22) + "," + Math.round(80 - t4*30) + "," + Math.round(92 - t4*22) + "," + (0.82 + t4*0.10) + ")"; }
-  }
-
-  var ticking = false;
-  window.addEventListener("scroll", function() {
-    if (ticking) return;
-    ticking = true;
-    requestAnimationFrame(function() {
-      var scrollY = window.scrollY;
-      if (!prefersReduced) bg.style.transform = "translateY(" + (scrollY * 0.15) + "px) scale(1.1)";
-      overlay.style.background = getOverlayColor(scrollY);
-      ticking = false;
-    });
-  });
-})();
-
-// ── WOW SECTION ANIMATION ────────────────────────────────
-var wowSection = document.querySelector(".wow-section");
-if (wowSection) {
-  new IntersectionObserver(function(entries) {
-    entries.forEach(function(entry) { if (entry.isIntersecting) { /* bars animate via CSS */ } });
-  }, { threshold: 0.4 }).observe(wowSection);
-}
+<script src="script.js"></script>
+</body>
+</html>
