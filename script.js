@@ -125,24 +125,30 @@ function fmtShort(n) {
 
 // ── LOAD DATA + INIT UI ───────────────────────────────────
 document.addEventListener("DOMContentLoaded", function () {
-  // Try live data first, fall back to cached
-  fetch(DATA_URL)
-    .then(function(res) { return res.json(); })
-    .then(function(json) {
-      if (json.districts && json.districts.length > 0) {
-        processDistricts(json.districts);
-        dataSource = "live";
-      } else {
-        processDistricts(FALLBACK);
-        dataSource = "cached";
-      }
-      initUI();
-    })
-    .catch(function() {
-      processDistricts(FALLBACK);
-      dataSource = "cached";
-      initUI();
-    });
+  // Load immediately from fallback so dropdowns populate right away
+  processDistricts(FALLBACK);
+  dataSource = "cached";
+  initUI();
+
+  // Then try live data in the background — if it works, refresh the data
+  try {
+    fetch(DATA_URL)
+      .then(function(res) {
+        if (!res.ok) throw new Error("Bad response");
+        return res.json();
+      })
+      .then(function(json) {
+        if (json && json.districts && json.districts.length > 0) {
+          processDistricts(json.districts);
+          dataSource = "live";
+        }
+      })
+      .catch(function() {
+        // Live data not available — fallback already loaded, no problem
+      });
+  } catch(e) {
+    // fetch not supported or other error — fallback already loaded
+  }
 });
 
 // ═══════════════════════════════════════════════════════════
