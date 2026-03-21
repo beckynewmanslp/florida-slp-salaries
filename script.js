@@ -32,7 +32,7 @@ const FALLBACK = [
 {name:"Brevard",base:48725,masters:2730,doctorate:0,ccc:6200,bonus:2565,total:60220,confidence:"verified",schedule:"Instructional",days:"196 days",ashaPaid:"No",notes:"$730 Millage, $835 ESE, $1,000 Critical Shortage. Updated 3/8/24."},
 {name:"Escambia",base:57215,masters:2750,doctorate:0,ccc:0,bonus:0,total:59965,confidence:"estimated",schedule:"Professional",days:"10 months",ashaPaid:"No",notes:""},
 {name:"Okaloosa",base:49017,masters:2382,doctorate:0,ccc:0,bonus:8161,total:59560,confidence:"estimated",schedule:"Instructional",days:"10 months",ashaPaid:"No",notes:"$8,161 FLDOH Licensure."},
-{name:"Pinellas",base:52000,masters:2251,doctorate:0,ccc:5280,bonus:0,total:59531,confidence:"estimated",schedule:"Instructional",days:"198 days",ashaPaid:"No",notes:"Base includes $6,328 referendum."},
+{name:"Pinellas",base:45672,masters:2251,doctorate:0,ccc:5280,bonus:11081,total:64284,confidence:"verified",schedule:"Instructional",days:"198 days",ashaPaid:"No",notes:"Referendum supplement increased to $11,081 for 2025-26 (was $6,328). Base $45,672 + referendum $11,081 + Master's $2,251 + CCC $5,280. Updated 3/20/2026."},
 {name:"Hernando",base:47500,masters:2500,doctorate:0,ccc:0,bonus:9170,total:59170,confidence:"estimated",schedule:"Instructional",days:"10 months",ashaPaid:"No",notes:"$9,170 Critical Shortage."},
 {name:"Citrus",base:47500,masters:2000,doctorate:0,ccc:9400,bonus:0,total:58900,confidence:"estimated",schedule:"Instructional",days:"196 days",ashaPaid:"Yes",notes:"ASHA dues paid."},
 {name:"Monroe",base:51800,masters:1800,doctorate:0,ccc:2300,bonus:3000,total:58900,confidence:"estimated",schedule:"Instructional",days:"196 days",ashaPaid:"No",notes:"$3,000 SLP Supplement."},
