@@ -37,7 +37,7 @@ const FALLBACK = [
 {name:"Citrus",base:47500,masters:2000,doctorate:0,ccc:9400,bonus:0,total:58900,confidence:"estimated",schedule:"Instructional",days:"196 days",ashaPaid:"Yes",notes:"ASHA dues paid."},
 {name:"Monroe",base:51800,masters:1800,doctorate:0,ccc:2300,bonus:3000,total:58900,confidence:"estimated",schedule:"Instructional",days:"196 days",ashaPaid:"No",notes:"$3,000 SLP Supplement."},
 {name:"Highlands",base:48280,masters:2500,doctorate:0,ccc:7242,bonus:600,total:58622,confidence:"estimated",schedule:"Instructional",days:"196 days",ashaPaid:"No",notes:"CCC 1.15x base. $600 Critical Shortage."},
-{name:"Palm Beach",base:53200,masters:3000,doctorate:0,ccc:2000,bonus:0,total:58200,confidence:"estimated",schedule:"Instructional",days:"10 months",ashaPaid:"No",notes:""},
+{name:"Palm Beach",base:61680,masters:3000,doctorate:0,ccc:2000,bonus:1000,total:67680,confidence:"estimated",schedule:"Instructional",days:"10 months",ashaPaid:"No",notes:"$1,000 ESE Supplement. Updated from 8/28/2025 source data."},
 {name:"Gulf",base:57851,masters:0,doctorate:0,ccc:0,bonus:0,total:57851,confidence:"estimated",schedule:"Specialists",days:"189 days",ashaPaid:"No",notes:"Master's in base."},
 {name:"St. Lucie",base:47500,masters:5020,doctorate:0,ccc:4000,bonus:1100,total:57620,confidence:"estimated",schedule:"Instructional",days:"10 months",ashaPaid:"No",notes:"Master's+30: $5,020. $1,000 Referendum."},
 {name:"Marion",base:55118,masters:2500,doctorate:0,ccc:0,bonus:0,total:57618,confidence:"estimated",schedule:"District Specialized",days:"196 days",ashaPaid:"No",notes:""},
@@ -200,6 +200,18 @@ function initUI() {
   // ── SALARY CALCULATOR ─────────────────────────────────
   var calcBtn = document.getElementById("calc-btn");
   var resultBox = document.getElementById("salary-result");
+
+  // Master's and Doctorate are mutually exclusive — you only get one
+  var mastersCheck = document.getElementById("masters-check");
+  var doctorateCheck = document.getElementById("doctorate-check");
+  if (mastersCheck && doctorateCheck) {
+    mastersCheck.addEventListener("change", function() {
+      if (mastersCheck.checked) doctorateCheck.checked = false;
+    });
+    doctorateCheck.addEventListener("change", function() {
+      if (doctorateCheck.checked) mastersCheck.checked = false;
+    });
+  }
 
   if (calcBtn) calcBtn.addEventListener("click", function () {
     var name = districtSelect ? districtSelect.value : "";
