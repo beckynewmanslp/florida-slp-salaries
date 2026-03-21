@@ -99,7 +99,15 @@ function processDistricts(data) {
       schedule: d.schedule || "",
       days: d.days || "",
       ashaPaid: String(d.ashaPaid).toLowerCase() === "yes" || String(d.ashaPaid).toLowerCase() === "true" || d.ashaPaid === true,
-      notes: d.notes || ""
+      notes: d.notes || "",
+      col: d.col || "",
+      homePrice: Number(d.homePrice) || 0,
+      income: Number(d.income) || 0,
+      taxRate: d.taxRate || "",
+      enrollment: Number(d.enrollment) || 0,
+      perPupil: Number(d.perPupil) || 0,
+      source: d.source || "",
+      verified: d.verified || ""
     };
   });
   rankedDistricts = DISTRICTS.filter(function(d){ return d.total > 0; })
@@ -369,6 +377,18 @@ function initUI() {
     el = document.getElementById("profile-asha"); if (el) el.textContent = fmt(d.ccc);
     el = document.getElementById("profile-bonus"); if (el) el.textContent = fmt(d.bonus);
     el = document.getElementById("profile-notes"); if (el) el.textContent = d.notes || "No additional notes.";
+    el = document.getElementById("profile-schedule"); if (el) el.textContent = d.schedule || "—";
+    el = document.getElementById("profile-days"); if (el) el.textContent = d.days || "—";
+    el = document.getElementById("profile-asha-paid"); if (el) el.textContent = d.ashaPaid ? "Yes" : "No";
+    el = document.getElementById("profile-col"); if (el) el.textContent = d.col || "—";
+    el = document.getElementById("profile-homeprice"); if (el) el.textContent = d.homePrice ? "$" + Number(d.homePrice).toLocaleString() : "—";
+    el = document.getElementById("profile-income"); if (el) el.textContent = d.income ? "$" + Number(d.income).toLocaleString() : "—";
+    el = document.getElementById("profile-taxrate"); if (el) el.textContent = d.taxRate ? d.taxRate + "%" : "—";
+    el = document.getElementById("profile-enrollment"); if (el) el.textContent = d.enrollment ? Number(d.enrollment).toLocaleString() : "—";
+    el = document.getElementById("profile-perpupil"); if (el) el.textContent = d.perPupil ? "$" + Number(d.perPupil).toLocaleString() : "—";
+    el = document.getElementById("profile-source"); if (el) el.textContent = d.source || "—";
+    el = document.getElementById("profile-verified"); if (el) el.textContent = d.verified || "—";
+    el = document.getElementById("profile-confidence"); if (el) el.textContent = d.confidence || "—";
 
     if (profileCard) profileCard.style.display = "";
     if (profileDetails) profileDetails.style.display = "";
